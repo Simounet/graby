@@ -246,9 +246,23 @@ class Graby
 
         $this->logger->log('debug', 'Fetching url: {url}', ['url' => $url]);
 
-        $response = $this->httpClient->fetch($url, false, $siteConfig->http_header);
+        $finalUrl = $url;
+        $isPaywallUsed = false;
+        $knownPaywalls = [
+            'arretsurimages.net',
+            'inpact-hardware.com'
+        ];
+        foreach($knownPaywalls as $paywall) {
+            if (strpos($url, $paywall) !== false) {
+                $finalUrl = 'https://localhost/paywalls-proxy/?page=' . $url;
+                $isPaywallUsed = true;
+                break;
+            }
+        }
+        $response = $this->httpClient->fetch($finalUrl, false, $siteConfig->http_header);
 
-        $effectiveUrl = $response['effective_url'];
+        $effectiveUrl = $isPaywallUsed ?
+            $url : $response['effective_url'];
         $effectiveUrl = str_replace(' ', '%20', $effectiveUrl);
         if (!$this->isUrlAllowed($effectiveUrl)) {
             throw new \Exception(sprintf('Url "%s" is not allowed to be parsed.', $effectiveUrl));
